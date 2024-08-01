@@ -24,8 +24,8 @@ go version
 ## Clone Repository
 
 ```
-git clone https://github.com/sarox0987/evmos-farmer.git
-cd evmos-farmer
+git clone https://github.com/fireroomy/farmer-airchain/.git
+cd farmer-airchain
 ```
 
 ## Run the script
