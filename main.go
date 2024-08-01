@@ -61,7 +61,7 @@ func main() {
 		return
 	}
 	fmt.Println("Address:", wallet.address.Hex())
-	chainId := big.NewInt(1) // تغییر به chainId صحیح
+	chainId := big.NewInt(1234) // تغییر به chainId صحیح
 	c, err := ethclient.Dial(url)
 	if err != nil {
 		panic(err)
