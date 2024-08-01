@@ -24,7 +24,7 @@ go version
 ## Clone Repository
 
 ```
-git clone https://github.com/fireroomy/farmer-airchain/.git
+git clone https://github.com/fireroomy/farmer-airchain.git
 cd farmer-airchain
 ```
 
