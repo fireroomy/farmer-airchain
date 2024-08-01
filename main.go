@@ -84,27 +84,31 @@ func main() {
 	fmt.Println("Balance:", balance)
 
 	var mu sync.Mutex
+	var nonce uint64
+
+	// Retrieve the initial nonce
+	nonce, err = c.NonceAt(context.Background(), wallet.address, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	i := 0
 	for {
 		i++
 		mu.Lock()
-		sendTx(i, c, wallet.address, wallet.address, big.NewInt(int64(i%10+1)), chainId, wallet.privateKey)
+		nonce, err = sendTx(i, c, wallet.address, wallet.address, big.NewInt(int64(i%10+1)), chainId, wallet.privateKey, nonce)
+		if err != nil {
+			log.Printf("Failed to send transaction: %v", err)
+		}
 		mu.Unlock()
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func sendTx(i int, c *ethclient.Client, from, to common.Address, amount *big.Int, chainId *big.Int, pk *ecdsa.PrivateKey) {
-	nonce, err := c.NonceAt(context.Background(), from, nil)
-	if err != nil {
-		log.Printf("Failed to retrieve nonce: %v", err)
-		return
-	}
-
+func sendTx(i int, c *ethclient.Client, from, to common.Address, amount *big.Int, chainId *big.Int, pk *ecdsa.PrivateKey, nonce uint64) (uint64, error) {
 	gasPrice, err := c.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Printf("Failed to suggest gas price: %v", err)
-		return
+		return nonce, fmt.Errorf("failed to suggest gas price: %w", err)
 	}
 
 	gasLimit := uint64(21000)
@@ -112,25 +116,23 @@ func sendTx(i int, c *ethclient.Client, from, to common.Address, amount *big.Int
 	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), pk)
 	if err != nil {
-		log.Printf("Failed to sign transaction: %v", err)
-		return
+		return nonce, fmt.Errorf("failed to sign transaction: %w", err)
 	}
 
 	sender, err := types.Sender(types.NewEIP155Signer(chainId), signedTx)
 	if err != nil {
-		log.Printf("Failed to retrieve sender from signed transaction: %v", err)
-		return
+		return nonce, fmt.Errorf("failed to retrieve sender from signed transaction: %w", err)
 	}
 	if sender != from {
-		log.Printf("Sender mismatch: expected %s but got %s", from.Hex(), sender.Hex())
-		return
+		return nonce, fmt.Errorf("sender mismatch: expected %s but got %s", from.Hex(), sender.Hex())
 	}
 
 	err = c.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Printf("Failed to send transaction: %v", err)
-		return
+		return nonce, fmt.Errorf("failed to send transaction: %w", err)
 	}
 
 	fmt.Printf("Tx %d: %s\n", i, tx.Hash().Hex())
+
+	return nonce + 1, nil // Increase the nonce for the next transaction
 }
