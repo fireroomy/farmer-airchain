@@ -24,7 +24,6 @@ type wallet struct {
 }
 
 func createWalletFromPrivateKey(privateKeyHex string) (*wallet, error) {
-
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing private key: %w", err)
@@ -45,10 +44,8 @@ func createWalletFromPrivateKey(privateKeyHex string) (*wallet, error) {
 }
 
 func main() {
-
 	reader := bufio.NewReader(os.Stdin)
 
-	// Function to read a string input
 	readString := func(prompt string) string {
 		fmt.Print(prompt)
 		input, _ := reader.ReadString('\n')
@@ -63,8 +60,8 @@ func main() {
 		fmt.Println("Error creating wallet:", err)
 		return
 	}
-	fmt.Println(wallet.address)
-	chainId := big.NewInt(1234)
+	fmt.Println("Address:", wallet.address.Hex())
+	chainId := big.NewInt(1) // تغییر به chainId صحیح
 	c, err := ethclient.Dial(url)
 	if err != nil {
 		panic(err)
@@ -74,12 +71,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("balance: ", balance)
+	fmt.Println("Balance:", balance)
 
 	i := 0
 	for {
 		i++
-		sendTx(0, c, wallet.address, wallet.address, big.NewInt(int64(i%10+1)), chainId, wallet.privateKey)
+		sendTx(i, c, wallet.address, common.HexToAddress("0xAddress"), big.NewInt(int64(i%10+1)), chainId, wallet.privateKey)
 		time.Sleep(10 * time.Second)
 	}
 }
@@ -97,7 +94,7 @@ func sendTx(i int, c *ethclient.Client, from, to common.Address, amount *big.Int
 		return
 	}
 
-	gasLimit := uint64(22000)
+	gasLimit := uint64(21000) // مقدار مناسب gasLimit
 
 	tx := types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), pk)
@@ -112,5 +109,5 @@ func sendTx(i int, c *ethclient.Client, from, to common.Address, amount *big.Int
 		return
 	}
 
-	fmt.Printf("Address: %d Tx %d: %s\n", i, nonce, tx.Hash())
+	fmt.Printf("Tx %d: %s\n", i, tx.Hash().Hex())
 }
